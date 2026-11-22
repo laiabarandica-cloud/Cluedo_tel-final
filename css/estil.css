@@ -1,0 +1,210 @@
+/* Teló Final — estil comú (paleta del brand book) */
+:root {
+  --telo: #A62832;
+  --bordeus: #551F2B;
+  --crema: #F6E9D2;
+  --daurat: #D5A34B;
+  --tinta: #242026;
+  --blau: #426A80;
+  --corall: #E57C59;
+  --tinta-clara: #2E2830;
+  --linia: #6E3A45;
+  --tinta-suau: #6E625A;
+  --fum: #B8AC9C;
+  --fum-calid: #C9B79C;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --ombra-carta: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--tinta);
+  color: var(--crema);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--daurat); }
+button { font-family: inherit; }
+[hidden] { display: none !important; }
+
+.titol-joc {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  margin: 0;
+}
+.titol-joc span { color: var(--corall); }
+
+/* Botons */
+.boto {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 0 20px;
+  border: none; border-radius: var(--radius-md);
+  background: var(--telo); color: #fff;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  text-decoration: none;
+}
+.boto:active { background: var(--bordeus); }
+.boto:focus-visible, .boto-sec:focus-visible, .pestanya:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--daurat); outline-offset: 2px;
+}
+.boto[disabled] { opacity: 0.45; cursor: not-allowed; }
+.boto-sec {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 16px;
+  border: 1px solid var(--linia); border-radius: var(--radius-md);
+  background: var(--tinta-clara); color: var(--crema);
+  font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+}
+.boto-sec.actiu { border-color: var(--corall); color: var(--corall); }
+.boto-ample { width: 100%; }
+
+.fase {
+  display: inline-block;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 6px 10px; border-radius: 999px;
+  background: var(--tinta-clara); color: var(--daurat);
+}
+
+.etiqueta {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fum-calid);
+}
+
+/* Formularis */
+input[type=text], input[type=password], select, textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--linia);
+  background: var(--tinta-clara);
+  color: var(--crema);
+  font-family: var(--font-sans);
+  font-size: 16px;
+}
+textarea { min-height: 160px; resize: vertical; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--fum); margin-bottom: 6px; }
+.camp { margin-bottom: 14px; }
+.input-codi {
+  text-transform: uppercase; letter-spacing: 0.3em; font-family: var(--font-mono); font-weight: 700;
+  font-size: 22px; text-align: center;
+}
+
+/* Missatges */
+.avis {
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 10px 0;
+  background: var(--tinta-clara);
+  border: 1px solid var(--linia);
+}
+.avis.ok { border-color: #5E9C6B; }
+.avis.error { border-color: var(--corall); color: #F3C0AE; }
+.avis.info { background: var(--blau); border-color: var(--blau); color: #fff; }
+
+.panell {
+  background: var(--bordeus);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.panell h2, .panell h3 {
+  font-family: var(--font-display); font-weight: 800; color: var(--daurat);
+  margin: 0 0 8px; font-size: 20px;
+}
+
+/* Xips */
+.xips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.xip {
+  font-size: 11.5px; font-weight: 500; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid #D9CBB3; background: #fff; color: var(--tinta);
+}
+
+/* ---------- Carta ---------- */
+.carta {
+  width: min(340px, 100%);
+  aspect-ratio: 340 / 476;
+  margin: 0 auto;
+  perspective: 1400px;
+}
+.carta-interior {
+  position: relative; width: 100%; height: 100%;
+  transition: transform 0.6s cubic-bezier(.2,.7,.2,1);
+  transform-style: preserve-3d;
+}
+.carta.girada .carta-interior { transform: rotateY(180deg); }
+.cara, .revers {
+  position: absolute; inset: 0;
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  box-shadow: var(--ombra-carta);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.cara { background: var(--crema); color: var(--tinta); }
+.revers { background: var(--bordeus); transform: rotateY(180deg); }
+.marc {
+  height: 100%; border-radius: var(--radius-md); padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  border: 2px solid var(--dept, var(--telo));
+}
+.revers .marc { border-color: var(--daurat); overflow-y: auto; padding: 14px 16px; gap: 12px; color: var(--crema); }
+.il {
+  position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden;
+  background: #EDE0C8;
+}
+.il img { width: 100%; height: 100%; object-fit: contain; }
+.placa {
+  position: absolute; left: 8px; top: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 7px; border-radius: 8px;
+  background: var(--dept); color: #fff;
+  font-family: var(--font-display); font-weight: 800; font-size: 20px; line-height: 1;
+}
+.placa svg { width: 16px; height: 16px; }
+.pindola-dept {
+  position: absolute; right: 8px; top: 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 5px 8px; border-radius: 999px; background: var(--dept); color: #fff;
+}
+.nom-personatge { font-family: var(--font-display); font-weight: 800; font-size: 25px; line-height: 1.1; text-align: center; }
+.rol { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; text-align: center; color: var(--dept); }
+.senyals-titol { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-suau); text-align: center; }
+.revers h2 { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--daurat); margin: 0; }
+.no-ensenyis { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--corall); }
+.bloc-revers p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.45; }
+.codi-personal { font-family: var(--font-mono); font-weight: 700; font-size: 26px; letter-spacing: 0.3em; color: var(--daurat); }
+.caixa-dolent {
+  border: 1px dashed var(--corall); border-radius: var(--radius-md); padding: 10px 12px;
+  background: rgba(229, 124, 89, 0.08);
+}
+.caixa-dolent strong { color: var(--corall); letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+
+/* Departaments */
+.dept-escena { --dept: #A62832; }
+.dept-tecnica { --dept: #426A80; }
+.dept-sala { --dept: #551F2B; }
+.dept-taquilla { --dept: #2E6B3A; }
+.dept-oficines { --dept: #8A5A00; }
+.dept-manteniment { --dept: #4F5B62; }
+.dept-public { --dept: #3D3D7A; }
+
+/* Utilitats */
+.centre { text-align: center; }
+.suau { color: var(--fum); }
+.petit { font-size: 13px; }
+.separat > * + * { margin-top: 12px; }
+.fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.graella-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

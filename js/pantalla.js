@@ -6,7 +6,7 @@
 
   const TEXTOS = {
     preparacio: 'Prepareu els mòbils: aviat comença la funció.',
-    aperitiu: 'Obriu la web, entreu el vostre codi i enganxeu-vos l\'etiqueta amb el nom del vostre personatge.',
+    aperitiu: 'Escanegeu el QR, trieu el vostre nom i enganxeu-vos l\'etiqueta del vostre personatge.',
     acte1: 'Interrogueu-vos: coartades, pistes i missions. L\'assassí és entre nosaltres.',
     entreacte: 'Ha arribat l\'informe forense. Mireu-lo al mòbil.',
     acte2: 'Segon acte. Compte amb els rumors…',
@@ -32,6 +32,14 @@
     $('#caixa-vots').hidden = !['votacio', 'tancat', 'revelacio'].includes(e.fase);
     $('#c-vots').textContent = e.vots + '/' + e.jugadors;
     $('#rumor').hidden = !e.rumor; $('#rumor-text').textContent = e.rumor ? '«' + e.rumor + '»' : '';
+    const ambQr = ['preparacio', 'aperitiu', 'acte1'].includes(e.fase);
+    $('#qr-web').hidden = !ambQr;
+    if (ambQr && !$('#qr-svg').innerHTML) {
+      const url = location.origin + location.pathname.replace(/pantalla(\.html)?$/, '');
+      const q = qrcode(0, 'M'); q.addData(url); q.make();
+      $('#qr-svg').innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+      $('#qr-url').textContent = url.replace(/^https?:\/\//, '');
+    }
     if (e.revelat_pantalla) {
       if (!revelant) {
         resultats = await rpc('resultats', { p_clau: clau });

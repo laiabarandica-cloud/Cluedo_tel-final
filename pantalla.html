@@ -47,6 +47,11 @@
   .ranking .fila-r { display: flex; justify-content: space-between; padding: 0.4em 0; border-bottom: 1px solid var(--linia); font-size: 1.3em; }
   .ranking .fila-r:first-child { color: var(--daurat); font-size: 1.7em; font-weight: 700; }
   .error-pantalla { padding: 10vh 5vw; }
+  .qr-web { display: flex; align-items: center; gap: 1.2em; margin-left: auto; background: var(--crema); color: var(--tinta); border-radius: 16px; padding: 0.8em 1.2em 0.8em 0.8em; }
+  .qr-web #qr-svg svg { width: 30vh; height: 30vh; display: block; }
+  .qr-web b { display: block; font-family: var(--font-display); font-size: 1.3em; max-width: 9em; line-height: 1.15; }
+  .qr-web span { display: block; font-size: 0.75em; color: var(--tinta-suau); margin-top: 0.5em; word-break: break-all; max-width: 14em; }
+  .qr-web:not([hidden]) + .comptadors { margin-left: 0; }
 </style>
 </head>
 <body>
@@ -61,6 +66,10 @@
       <h1 class="titol-joc">TELÓ <span>FINAL</span></h1>
       <p class="text-fase" id="text-fase"></p>
     </div>
+    <div class="qr-web" id="qr-web" hidden>
+      <div id="qr-svg"></div>
+      <div><b>Escaneja i tria el teu nom</b><span id="qr-url"></span></div>
+    </div>
     <div class="comptadors">
       <div class="comptador"><b id="c-jugadors">0</b><span>Jugadors</span></div>
       <div class="comptador" id="caixa-vots" hidden><b id="c-vots">0</b><span>Vots</span></div>
@@ -71,6 +80,7 @@
 <div class="error-pantalla" id="error" hidden></div>
 
 <script src="vendor/supabase.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script src="js/config.js"></script>
 <script src="js/comu.js"></script>
 <script src="js/pantalla.js"></script>

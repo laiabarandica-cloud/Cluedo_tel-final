@@ -14,8 +14,8 @@ Joc tipus Cluedo per al dinar del Poliorama: un assassinat la nit d'estrena. Web
 
 1. Obre `/master`. La primera vegada et demana crear la contrasenya de màster.
 2. Escriu els noms (un per línia) i prem **Repartir personatges**. Cada persona rep un personatge a l'atzar i un codi de 4 lletres.
-3. Prem **Imprimir codis** per tenir un tiquet per persona amb el QR, o ensenya el QR des del panell.
-4. Obre l'enllaç **Pantalla gran** a l'ordinador del projector.
+3. Obre l'enllaç **Pantalla gran** a l'ordinador del projector. Durant la preparació, l'aperitiu i el 1r acte hi surt un QR gran de la web.
+4. Cada persona escaneja el QR, busca el seu nom a la llista i el toca: veu el seu personatge. Cada nom només es pot obrir en un mòbil; si algú s'equivoca o canvia de mòbil, prem **Desbloqueja** al panell. (Si cal, encara hi ha els codis de 4 lletres i el botó **Imprimir codis**.)
 5. Avança les fases amb els botons: Aperitiu → 1r acte → Entreacte (surt l'informe forense) → 2n acte (l'assassina pot enviar un rumor; tu l'aproves) → Obrir votació → Tancar votació.
 6. Marca **Mostrar la solució a la pantalla gran** i fes la revelació pas a pas (clic o barra espaiadora). Quan vulguis, marca també **als mòbils**.
 7. Per a una partida nova: **Reiniciar la partida**.

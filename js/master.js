@@ -75,7 +75,9 @@
     $('#fases').innerHTML = ORDRE_FASES.map(([k, n]) =>
       '<button class="boto-sec' + (e.fase === k ? ' actual' : '') + '" data-fase="' + k + '">' + esc(n) + '</button>').join('');
     $('#n-jugadors').textContent = js.length;
-    $('#n-vots').textContent = js.filter(j => j.ha_votat).length + '/' + js.length;
+    $('#n-vots').textContent = e.fase === 'preparacio' || e.fase === 'aperitiu'
+      ? js.filter(j => j.obert).length + '/' + js.length : js.filter(j => j.ha_votat).length + '/' + js.length;
+    $('#n-vots').nextElementSibling.textContent = e.fase === 'preparacio' || e.fase === 'aperitiu' ? 'han entrat' : 'han votat';
     $('#n-missions').textContent = js.filter(j => j.missio_feta).length;
     $('#rev-pantalla').checked = e.revelat_pantalla;
     $('#rev-mobils').checked = e.revelat_mobils;
@@ -107,7 +109,8 @@
       '<td>' + j.num + '. ' + esc(j.personatge) + ' <span class="suau petit">· ' + esc(j.rol) + '</span>' +
       (j.paper !== 'innocent' ? ' <span class="paper-dolent">' + (j.paper === 'assassi' ? 'assassina' : 'còmplice') + '</span>' : '') + '</td>' +
       '<td><span class="codi">' + esc(j.codi) + '</span></td>' +
-      '<td>' + (j.missio_tipus === 'vot' ? '<span class="ok-no" title="Es comprova al final">al final</span>' : (j.missio_feta ? '<span class="ok-si">✓</span>' : '<span class="ok-no">—</span>')) + '</td>' +
+      '<td>' + (j.obert ? '<span class="ok-si">✓</span> <button class="boto-sec mini" data-alliberar="' + j.codi + '" data-nom="' + esc(j.nom_real) + '" title="Permet tornar a obrir aquest nom en un altre mòbil">Desbloqueja</button>' : '<span class="ok-no">—</span>') + '</td>' +
+      '<td>' + (j.missio_tipus === 'vot' ? '<span class="ok-no" title="Es comprova al final">al final</span>' : (j.missio_feta ? '<span class="ok-si">✓</span>' : '<span class="ok-no">' + (j.missio_progres || '—') + '</span>')) + '</td>' +
       '<td>' + (j.ha_votat ? '<span class="ok-si">✓</span>' : '<span class="ok-no">—</span>') + '</td>' +
       '<td class="fila" style="flex-wrap:nowrap"><button class="boto-sec mini" data-qr="' + j.codi + '" data-nom="' + esc(j.nom_real) + '">QR</button>' +
       '<button class="boto-sec mini" data-renom="' + j.codi + '" data-nom="' + esc(j.nom_real) + '">Canvia nom</button>' +
@@ -136,6 +139,8 @@
       } else if (t.dataset.renom) {
         const nou = prompt('Nou nom per a aquest personatge (' + t.dataset.nom + '):', t.dataset.nom);
         if (nou && nou.trim()) await crida('master_canviar_nom', { p_codi: t.dataset.renom, p_nom: nou.trim() });
+      } else if (t.dataset.alliberar) {
+        if (confirm('Desbloquejar ' + t.dataset.nom + '? Podrà tornar a triar el seu nom des d\'un altre mòbil.')) await crida('master_alliberar', { p_codi: t.dataset.alliberar });
       } else if (t.dataset.treure) {
         if (confirm('Treure ' + t.dataset.nom + ' de la partida? El seu personatge quedarà lliure.')) await crida('master_treure', { p_codi: t.dataset.treure });
       } else if (t.dataset.tanca !== undefined) {

@@ -20,6 +20,8 @@
     if (!carta) throw new Error('Aquest codi no existeix. Revisa\'l o demana\'l al màster.');
     S.codi = codi; S.carta = carta;
     desaCodi(codi);
+    rpc('marcar_entrada', { p_codi: codi }).catch(() => {});
+    clearInterval(tempsNoms);
     if (carta.vot) S.vot = Object.assign({}, carta.vot);
     $('#vista-entrada').hidden = true;
     $('#vista-joc').hidden = false;
@@ -34,6 +36,33 @@
     const err = $('#entrada-error'); err.hidden = true;
     try { await entra($('#input-codi').value); }
     catch (e) { err.textContent = e.message; err.hidden = false; }
+  });
+
+  // ---------- Entrada per nom ----------
+  let noms = []; let tempsNoms = null;
+  async function carregaNoms() {
+    try { noms = await rpc('noms_lliures') || []; } catch (e) { noms = []; }
+    pintaNoms();
+  }
+  function pintaNoms() {
+    const f = ($('#cerca-nom').value || '').trim().toLowerCase();
+    const filtra = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const llista = noms.filter(n => !f || filtra(n.nom).includes(filtra(f)));
+    let h = llista.map(n => '<button type="button" class="boto-nom" data-ref="' + esc(n.ref) + '" data-nom="' + esc(n.nom) + '">' + esc(n.nom) + '</button>').join('');
+    if (!noms.length) h = '<p class="suau petit">Encara no hi ha noms disponibles. Espera que el màster reparteixi els personatges.</p>';
+    else if (!llista.length) h = '<p class="suau petit">No trobem aquest nom. Si ja l\'has obert en un altre mòbil, o no hi surts, avisa el màster.</p>';
+    $('#llista-noms').innerHTML = h;
+  }
+  $('#cerca-nom').addEventListener('input', pintaNoms);
+  $('#llista-noms').addEventListener('click', async (ev) => {
+    const b = ev.target.closest('[data-ref]'); if (!b) return;
+    if (!confirm('Ets ' + b.dataset.nom + '? Un cop obert, aquest nom quedarà lligat a aquest mòbil.')) return;
+    const err = $('#entrada-error'); err.hidden = true;
+    try {
+      const codi = await rpc('reclamar', { p_ref: b.dataset.ref });
+      clearInterval(tempsNoms);
+      await entra(codi);
+    } catch (e) { err.textContent = e.message; err.hidden = false; carregaNoms(); }
   });
 
   // ---------- Estat ----------
@@ -78,6 +107,34 @@
     if (S.tab === 'missio') pintaMissio();
     if (S.tab === 'votar') pintaVotar();
     if (S.tab === 'resultats') pintaResultats();
+    if (S.tab === 'notes') pintaNotes();
+  }
+
+  // ---------- Notes ----------
+  let tempsNotes = null; let notesPendents = false;
+  function pintaNotes() {
+    const el = $('#tab-notes');
+    if (el.querySelector('#notes') && document.activeElement && document.activeElement.id === 'notes') return; // no trepitgem el que s'escriu
+    el.innerHTML = '<h2 class="seccio">Les meves notes</h2>' +
+      '<p class="suau petit" style="margin-top:-6px">Apunta-hi coartades, sospites i codis. Només les veus tu i es guarden soles.</p>' +
+      '<textarea id="notes" class="notes-area" maxlength="5000" placeholder="Ex.: La Clara diu que era al camerino amb la Neus. Qui porta talons?…"></textarea>' +
+      '<p class="suau petit" id="notes-estat" style="text-align:right"> </p>';
+    const t = $('#notes');
+    t.value = S.carta.notes || '';
+    t.oninput = () => {
+      notesPendents = true; $('#notes-estat').textContent = 'Desant…';
+      clearTimeout(tempsNotes); tempsNotes = setTimeout(desaNotes, 900);
+    };
+    t.onblur = () => { if (notesPendents) desaNotes(); };
+  }
+  async function desaNotes() {
+    const t = $('#notes'); if (!t) return;
+    const text = t.value;
+    try {
+      await rpc('desar_notes', { p_codi: S.codi, p_text: text });
+      S.carta.notes = text; notesPendents = false;
+      const e = $('#notes-estat'); if (e) e.textContent = 'Desat';
+    } catch (err) { const e = $('#notes-estat'); if (e) e.textContent = 'No s\'ha pogut desar: ' + err.message; }
   }
   function afegeixPunt(tab) {
     const b = $('.pestanya[data-tab="' + tab + '"]');
@@ -164,14 +221,21 @@
     if (m.t === 'codis') {
       const n = m.ids ? m.ids.length : m.n;
       const dades = c.missio_dades || {};
+      const tinc = (c.codis_aconseguits || []).length;
+      h += '<div class="fila" style="justify-content:space-between"><span class="etiqueta">Progrés</span><b style="color:var(--daurat)">' + Math.min(tinc, n) + ' / ' + n + '</b></div>' +
+        '<div class="progres"><div style="width:' + Math.min(100, tinc / n * 100) + '%"></div></div>';
       if (!c.missio_feta && obert) {
-        h += '<p class="suau petit">Demana el codi personal a cada persona (el tenen al revers de la seva carta) i escriu-los aquí.</p><form id="f-codis" class="separat">';
-        for (let i = 0; i < n; i++) h += '<input type="text" class="input-codi" maxlength="4" placeholder="Codi ' + (i + 1) + '" aria-label="Codi ' + (i + 1) + '" autocomplete="off">';
-        h += '<button class="boto boto-ample" type="submit">Comprova els codis</button></form>';
+        h += '<p class="suau petit">Cada persona té el seu codi personal al revers de la carta. Afegeix-los d\'un en un quan te\'ls diguin: es van guardant.</p>' +
+          '<form id="f-codis" class="fila" style="flex-wrap:nowrap" autocomplete="off"><input type="text" class="input-codi" maxlength="4" placeholder="ABCD" aria-label="Codi personal" style="flex:1"><button class="boto" type="submit">Afegeix</button></form>';
       }
-      if (dades.detall) {
-        h += '<h3 class="sub">Darrera comprovació</h3>';
-        dades.detall.forEach(d => { h += '<div class="resultat-codi">' + (d.ok ? '✓ ' : '✗ ') + '<b>' + esc(d.codi) + '</b>' + (d.nom ? ' · ' + esc(d.nom) : '') + ' — ' + esc(d.motiu) + '</div>'; });
+      if (tinc) {
+        h += '<h3 class="sub">Codis aconseguits</h3>';
+        c.codis_aconseguits.forEach(x => { h += '<div class="aconseguit"><span>✓ ' + esc(x.nom) + ' <span class="suau">· ' + esc(x.nom_real) + '</span></span><span class="codi">' + esc(x.codi) + '</span></div>'; });
+      }
+      const errors = (dades.detall || []).filter(d => !d.ok);
+      if (errors.length) {
+        h += '<h3 class="sub">Darrer intent</h3>';
+        errors.forEach(d => { h += '<div class="resultat-codi">✗ <b>' + esc(d.codi) + '</b>' + (d.nom ? ' · ' + esc(d.nom) : '') + ' — ' + esc(d.motiu) + '</div>'; });
       }
     }
     if (m.t === 'resposta') {
@@ -222,7 +286,7 @@
         h += '<div class="avis">«' + esc(c.rumor_meu.text) + '» — ' + (c.rumor_meu.estat === 'aprovat' ? 'publicat' : 'esperant que el màster l\'aprovi') + '</div>';
       } else if (e.fase === 'acte2') {
         h += (c.rumor_meu && c.rumor_meu.estat === 'rebutjat' ? '<div class="avis error">El màster ha rebutjat el teu rumor. Prova\'n un altre.</div>' : '') +
-          '<p class="suau petit">Sortirà a tots els mòbils i a la pantalla com a «Rumor anònim». Idea: «Algú ha vist l\'Hugo Ombra rentant-se les mans al lavabo a les 21:45…»</p>' +
+          '<p class="suau petit">Sortirà a tots els mòbils i a la pantalla com a «Rumor anònim». Idea: acusa algú que jugui avui, per exemple «Algú ha vist [nom] rentant-se les mans al lavabo a les 21:45…»</p>' +
           '<textarea id="txt-rumor" maxlength="140" style="min-height:90px" placeholder="Màxim 140 caràcters"></textarea>' +
           '<button class="boto boto-ample" id="envia-rumor" style="margin-top:10px">Envia el rumor</button>';
       } else {
@@ -245,7 +309,8 @@
       try {
         const r = await rpc('missio_codis', { p_codi: S.codi, p_codis: codis });
         await refresca();
-        msgMissio(r.feta ? 'Missió complerta!' : 'Encara no: tens ' + r.valids + ' codis vàlids.', r.feta ? 'ok' : 'error');
+        const nou = (r.detall || []).find(d => d.ok && d.motiu === 'Vàlid');
+        msgMissio(r.feta ? 'Missió complerta! +2 punts' : nou ? 'Codi vàlid: ja en tens ' + r.valids + ' de ' + r.necessaris + '.' : ((r.detall[0] || {}).motiu || 'Codi no vàlid'), r.feta || nou ? 'ok' : 'error');
       } catch (e) { msgMissio(e.message, 'error'); }
     };
     let triada = null;
@@ -376,6 +441,9 @@
   const guardat = param || llegeixCodi();
   if (guardat) {
     $('#input-codi').value = guardat.toUpperCase();
-    entra(guardat).catch(e => { oblidaCodi(); const err = $('#entrada-error'); err.textContent = e.message; err.hidden = false; });
+    entra(guardat).catch(e => { oblidaCodi(); const err = $('#entrada-error'); err.textContent = e.message; err.hidden = false; carregaNoms(); tempsNoms = setInterval(carregaNoms, 8000); });
+  } else {
+    carregaNoms();
+    tempsNoms = setInterval(carregaNoms, 8000);
   }
 })();

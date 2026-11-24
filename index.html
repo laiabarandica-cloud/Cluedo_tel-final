@@ -88,13 +88,15 @@
       <h1 class="titol-joc">TELÓ <span>FINAL</span></h1>
       <p>Nit d'estrena. En Max Bambalina, el gran divo de la casa, ha aparegut mort darrere el teló. Ningú no ha sortit del teatre: l'assassí és entre nosaltres.</p>
       <h2 class="seccio" style="margin-top:22px">Qui ets?</h2>
-      <p class="suau petit" style="margin-top:-6px">Busca el teu nom i toca'l per veure el teu personatge. Només el pots obrir en un mòbil.</p>
+      <p class="suau petit" style="margin-top:-6px">Escriu el teu nom tal com t'ha apuntat el màster i descobreix el teu personatge. Només el pots obrir en un mòbil.</p>
       <div id="entrada-error" class="avis error" hidden></div>
-      <div id="bloc-noms">
-        <label for="cerca-nom">El teu nom</label>
-        <input id="cerca-nom" type="text" placeholder="Escriu per buscar…" autocomplete="off">
-        <div id="llista-noms" class="llista-noms"></div>
-      </div>
+      <form id="form-nom" class="separat" autocomplete="off">
+        <div>
+          <label for="input-nom">El teu nom</label>
+          <input id="input-nom" type="text" placeholder="Ex.: Laia" autocapitalize="words" required>
+        </div>
+        <button class="boto boto-ample" type="submit">Descobreix el meu personatge</button>
+      </form>
       <details style="margin-top:18px">
         <summary class="suau petit" style="cursor:pointer;min-height:44px;display:flex;align-items:center">Tinc un codi de 4 lletres</summary>
         <form id="form-codi" class="separat" autocomplete="off">

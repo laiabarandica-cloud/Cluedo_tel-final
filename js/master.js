@@ -99,7 +99,19 @@
     });
     const aprovat = dades.rumors.find(r => r.estat === 'aprovat');
     if (aprovat) h += '<p class="petit suau">Rumor publicat: «' + esc(aprovat.text) + '»</p>';
-    $('#peticions').innerHTML = h || '<p class="petit suau">No hi ha res pendent.</p>';
+    const msgs = dades.missatges || [];
+    msgs.filter(m => m.estat === 'obert').forEach(m => {
+      h += '<div class="avis" style="border-color:var(--daurat)"><b>' + esc(m.nom_real) + '</b> (' + esc(m.personatge) + ') escriu:<br>' + esc(m.text) +
+        '<textarea data-resposta-text="' + m.id + '" maxlength="500" style="min-height:60px;margin-top:6px" placeholder="Resposta (opcional)"></textarea>' +
+        '<div class="fila" style="margin-top:8px"><button class="boto mini" data-respondre="' + m.id + '">Respon</button><button class="boto-sec mini" data-respondre="' + m.id + '" data-fet="1">Marca com a fet</button></div></div>';
+    });
+    const resposts = msgs.filter(m => m.estat === 'respost');
+    if (resposts.length) h += '<details style="margin-top:8px"><summary class="petit suau" style="cursor:pointer">Missatges ja resposts (' + resposts.length + ')</summary>' +
+      resposts.map(m => '<p class="petit" style="margin:8px 0"><b>' + esc(m.nom_real) + ':</b> ' + esc(m.text) + '<br><span class="suau">→ ' + esc(m.resposta || 'Fet') + '</span></p>').join('') + '</details>';
+    const escrivint = document.activeElement && document.activeElement.closest && document.activeElement.closest('#peticions') && document.activeElement.tagName === 'TEXTAREA';
+    if (!escrivint) $('#peticions').innerHTML = h || '<p class="petit suau">No hi ha res pendent.</p>';
+    const oberts = msgs.filter(m => m.estat === 'obert').length;
+    $('#titol-peticions').textContent = 'Peticions' + ((dades.validacions.length + oberts) ? ' (' + (dades.validacions.length + oberts) + ')' : '');
 
     // Jugadors
     $('#sense-jugadors').hidden = js.length > 0;
@@ -111,12 +123,19 @@
       '<td><span class="codi">' + esc(j.codi) + '</span></td>' +
       '<td>' + (j.obert ? '<span class="ok-si">✓</span> <button class="boto-sec mini" data-alliberar="' + j.codi + '" data-nom="' + esc(j.nom_real) + '" title="Permet tornar a obrir aquest nom en un altre mòbil">Desbloqueja</button>' : '<span class="ok-no">—</span>') + '</td>' +
       '<td>' + (j.missio_tipus === 'vot' ? '<span class="ok-no" title="Es comprova al final">al final</span>' : (j.missio_feta ? '<span class="ok-si">✓</span>' : '<span class="ok-no">' + (j.missio_progres || '—') + '</span>')) + '</td>' +
+      '<td>' + celaPunts(j.punts) + '</td>' +
       '<td>' + (j.ha_votat ? '<span class="ok-si">✓</span>' : '<span class="ok-no">—</span>') + '</td>' +
       '<td class="fila" style="flex-wrap:nowrap"><button class="boto-sec mini" data-qr="' + j.codi + '" data-nom="' + esc(j.nom_real) + '">QR</button>' +
       '<button class="boto-sec mini" data-renom="' + j.codi + '" data-nom="' + esc(j.nom_real) + '">Canvia nom</button>' +
       (j.paper === 'innocent' ? '<button class="boto-sec mini" data-treure="' + j.codi + '" data-nom="' + esc(j.nom_real) + '">Treu</button>' : '') + '</td></tr>').join('');
     const sols = js.filter(j => j.coartada_sola).map(j => j.personatge);
     $('#avis-coartades').textContent = sols.length ? 'Sense testimoni de coartada (avui no hi ha la seva parella): ' + sols.join(', ') + '. És normal amb menys de 22 jugadors.' : '';
+  }
+
+  function celaPunts(p) {
+    if (!p) return '<span class="ok-no">—</span>';
+    const det = 'Missió: ' + (p.missio ? '+2' : '0') + ' · Enquesta: ' + (p.enquesta || 0) + (p.bonus ? ' · Bonus: +' + p.bonus : '');
+    return '<b title="' + esc(det) + '">' + (p.punts || 0) + '</b> <span class="petit suau">' + (p.missio ? 'missió +2' : '') + '</span>';
   }
 
   // ---------- Accions ----------
@@ -132,6 +151,10 @@
       } else if (t.dataset.rumor) {
         const text = $('[data-rumor-text="' + t.dataset.rumor + '"]').value;
         await crida('master_rumor', { p_id: +t.dataset.rumor, p_aprovar: t.dataset.si === '1', p_text: text });
+      } else if (t.dataset.respondre) {
+        const txt = t.dataset.fet ? '' : $('[data-resposta-text="' + t.dataset.respondre + '"]').value.trim();
+        document.activeElement && document.activeElement.blur && document.activeElement.blur();
+        await crida('master_respondre', { p_id: +t.dataset.respondre, p_resposta: txt });
       } else if (t.dataset.qr) {
         const url = urlJugador(t.dataset.qr);
         obreModal('<h2 style="font-family:var(--font-display);color:var(--daurat);margin:0">' + esc(t.dataset.nom) + '</h2>' + qrSvg(url, 6) +

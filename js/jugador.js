@@ -21,7 +21,6 @@
     S.codi = codi; S.carta = carta;
     desaCodi(codi);
     rpc('marcar_entrada', { p_codi: codi }).catch(() => {});
-    clearInterval(tempsNoms);
     if (carta.vot) S.vot = Object.assign({}, carta.vot);
     $('#vista-entrada').hidden = true;
     $('#vista-joc').hidden = false;
@@ -38,31 +37,16 @@
     catch (e) { err.textContent = e.message; err.hidden = false; }
   });
 
-  // ---------- Entrada per nom ----------
-  let noms = []; let tempsNoms = null;
-  async function carregaNoms() {
-    try { noms = await rpc('noms_lliures') || []; } catch (e) { noms = []; }
-    pintaNoms();
-  }
-  function pintaNoms() {
-    const f = ($('#cerca-nom').value || '').trim().toLowerCase();
-    const filtra = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    const llista = noms.filter(n => !f || filtra(n.nom).includes(filtra(f)));
-    let h = llista.map(n => '<button type="button" class="boto-nom" data-ref="' + esc(n.ref) + '" data-nom="' + esc(n.nom) + '">' + esc(n.nom) + '</button>').join('');
-    if (!noms.length) h = '<p class="suau petit">Encara no hi ha noms disponibles. Espera que el màster reparteixi els personatges.</p>';
-    else if (!llista.length) h = '<p class="suau petit">No trobem aquest nom. Si ja l\'has obert en un altre mòbil, o no hi surts, avisa el màster.</p>';
-    $('#llista-noms').innerHTML = h;
-  }
-  $('#cerca-nom').addEventListener('input', pintaNoms);
-  $('#llista-noms').addEventListener('click', async (ev) => {
-    const b = ev.target.closest('[data-ref]'); if (!b) return;
-    if (!confirm('Ets ' + b.dataset.nom + '? Un cop obert, aquest nom quedarà lligat a aquest mòbil.')) return;
+  // ---------- Entrada escrivint el nom ----------
+  $('#form-nom').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
     const err = $('#entrada-error'); err.hidden = true;
+    const boto = ev.target.querySelector('button'); boto.disabled = true;
     try {
-      const codi = await rpc('reclamar', { p_ref: b.dataset.ref });
-      clearInterval(tempsNoms);
+      const codi = await rpc('entrar_per_nom', { p_nom: $('#input-nom').value });
       await entra(codi);
-    } catch (e) { err.textContent = e.message; err.hidden = false; carregaNoms(); }
+    } catch (e) { err.textContent = e.message; err.hidden = false; }
+    boto.disabled = false;
   });
 
   // ---------- Estat ----------
@@ -70,7 +54,8 @@
     const abans = S.estat;
     S.estat = e;
     try {
-      const [carta, dir] = await Promise.all([rpc('carta', { p_codi: S.codi }), rpc('directori')]);
+      const [carta, dir, msgs] = await Promise.all([rpc('carta', { p_codi: S.codi }), rpc('directori'), rpc('els_meus_missatges', { p_codi: S.codi })]);
+      S.missatges = msgs || [];
       if (!carta) { // la partida s'ha reiniciat
         oblidaCodi(); location.reload(); return;
       }
@@ -110,15 +95,26 @@
     if (S.tab === 'notes') pintaNotes();
   }
 
-  // ---------- Notes ----------
+  // ---------- Notes i missatges al màster ----------
   let tempsNotes = null; let notesPendents = false;
+  function respostesVistes() { try { return +localStorage.getItem('telo-respostes-' + S.codi) || 0; } catch (e) { return 0; } }
+  function marcaRespostesVistes() {
+    const n = (S.missatges || []).filter(m => m.estat === 'respost').length;
+    try { localStorage.setItem('telo-respostes-' + S.codi, String(n)); } catch (e) {}
+  }
   function pintaNotes() {
     const el = $('#tab-notes');
-    if (el.querySelector('#notes') && document.activeElement && document.activeElement.id === 'notes') return; // no trepitgem el que s'escriu
+    const actiu = document.activeElement && (document.activeElement.id === 'notes' || document.activeElement.id === 'txt-missatge');
+    if (el.querySelector('#notes') && actiu) { pintaMissatges(); return; } // no trepitgem el que s'escriu
     el.innerHTML = '<h2 class="seccio">Les meves notes</h2>' +
       '<p class="suau petit" style="margin-top:-6px">Apunta-hi coartades, sospites i codis. Només les veus tu i es guarden soles.</p>' +
       '<textarea id="notes" class="notes-area" maxlength="5000" placeholder="Ex.: La Clara diu que era al camerino amb la Neus. Qui porta talons?…"></textarea>' +
-      '<p class="suau petit" id="notes-estat" style="text-align:right"> </p>';
+      '<p class="suau petit" id="notes-estat" style="text-align:right"> </p>' +
+      '<h2 class="seccio" style="margin-top:22px">Escriu al màster</h2>' +
+      '<p class="suau petit" style="margin-top:-6px">Un dubte, un problema amb una missió o el mòbil… El màster ho veurà al seu panell i et respondrà aquí.</p>' +
+      '<textarea id="txt-missatge" maxlength="500" style="min-height:90px" placeholder="Ex.: No trobo ningú de Manteniment, com ho faig?"></textarea>' +
+      '<button class="boto boto-ample" id="envia-missatge" style="margin-top:10px">Envia al màster</button>' +
+      '<div id="missatge-msg"></div><div id="llista-missatges"></div>';
     const t = $('#notes');
     t.value = S.carta.notes || '';
     t.oninput = () => {
@@ -126,6 +122,29 @@
       clearTimeout(tempsNotes); tempsNotes = setTimeout(desaNotes, 900);
     };
     t.onblur = () => { if (notesPendents) desaNotes(); };
+    $('#envia-missatge').onclick = async () => {
+      const txt = $('#txt-missatge').value.trim();
+      const msg = $('#missatge-msg');
+      if (!txt) { msg.innerHTML = '<div class="avis error">Escriu el missatge.</div>'; return; }
+      try {
+        await rpc('enviar_missatge', { p_codi: S.codi, p_text: txt });
+        $('#txt-missatge').value = '';
+        S.missatges = await rpc('els_meus_missatges', { p_codi: S.codi }) || [];
+        msg.innerHTML = '<div class="avis ok">Enviat. El màster et respondrà aquí.</div>';
+        pintaMissatges();
+      } catch (e) { msg.innerHTML = '<div class="avis error">' + esc(e.message) + '</div>'; }
+    };
+    pintaMissatges();
+  }
+  function pintaMissatges() {
+    const el = $('#llista-missatges'); if (!el) return;
+    const ms = S.missatges || [];
+    el.innerHTML = ms.length ? '<h3 class="sub">Les teves peticions</h3>' + ms.map(m =>
+      '<div class="panell" style="padding:12px 14px;margin-bottom:10px"><p style="margin:0">' + esc(m.text) + '</p>' +
+      (m.estat === 'respost'
+        ? '<p style="margin:8px 0 0;color:var(--daurat)"><b>Màster:</b> ' + esc(m.resposta || 'Fet!') + '</p>'
+        : '<p class="suau petit" style="margin:6px 0 0">Pendent de resposta</p>') + '</div>').join('') : '';
+    marcaRespostesVistes();
   }
   async function desaNotes() {
     const t = $('#notes'); if (!t) return;
@@ -148,6 +167,10 @@
       h += '<button class="boto boto-ample" style="margin-bottom:12px" data-anar="resultats">Teló final: mira la solució</button>';
     }
     if (e.rumor) h += '<div class="rumor"><div class="etiqueta">Rumor anònim</div><p>«' + esc(e.rumor) + '»</p></div>';
+    const respostes = (S.missatges || []).filter(m => m.estat === 'respost').length;
+    if (respostes > respostesVistes() && S.tab !== 'notes') {
+      h += '<div class="avis info">El màster t\'ha respost. <a href="#" data-anar="notes" style="color:#fff;font-weight:700">Llegeix-ho</a></div>';
+    }
     if (S.carta && S.carta.confirmacions_pendents.length && S.tab !== 'missio') {
       h += '<div class="avis info">Algú et demana que confirmis la seva missió. <a href="#" data-anar="missio" style="color:#fff;font-weight:700">Obre-la</a></div>';
     }
@@ -441,9 +464,6 @@
   const guardat = param || llegeixCodi();
   if (guardat) {
     $('#input-codi').value = guardat.toUpperCase();
-    entra(guardat).catch(e => { oblidaCodi(); const err = $('#entrada-error'); err.textContent = e.message; err.hidden = false; carregaNoms(); tempsNoms = setInterval(carregaNoms, 8000); });
-  } else {
-    carregaNoms();
-    tempsNoms = setInterval(carregaNoms, 8000);
+    entra(guardat).catch(e => { oblidaCodi(); const err = $('#entrada-error'); err.textContent = e.message; err.hidden = false; });
   }
 })();
